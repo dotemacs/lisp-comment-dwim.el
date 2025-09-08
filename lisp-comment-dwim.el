@@ -40,40 +40,6 @@ Returns nil if no valid s-expression found."
               (list start end form))
           (error nil))))))
 
-(defun lisp-comment-dwim--find-nil-prefix-bounds (start)
-  "Find the bounds of #+(or) prefix starting at START.
-Returns (PREFIX-START . PREFIX-END) or nil if not found."
-  (save-excursion
-    (goto-char start)
-    (skip-chars-forward " \t\n\r")
-    (let ((prefix-start (point)))
-      (when (looking-at "#\\+(or)\\b")
-        (goto-char (match-end 0))
-        (skip-chars-forward " \t")
-        (cons prefix-start (point))))))
-
-(defun lisp-comment-dwim--wrap-with-nil-prefix (form)
-  "Wrap FORM with #+(or) prefix."
-  `(\#+ or ,form))
-
-(defun lisp-comment-dwim--replace-sexp-at-bounds (start end new-form)
-  "Replace s-expression between START and END with NEW-FORM."
-  (delete-region start end)
-  (goto-char start)
-  (prin1 new-form (current-buffer)))
-
-(defun lisp-comment-dwim--pretty-print-sexp (form indent-level)
-  "Pretty print FORM with proper indentation at INDENT-LEVEL."
-  (let ((print-level nil)
-        (print-length nil)
-        (print-circle nil))
-    (with-temp-buffer
-      (lisp-mode)
-      (prin1 form (current-buffer))
-      (goto-char (point-min))
-      (indent-sexp)
-      (buffer-string))))
-
 ;;;###autoload
 (defun lisp-comment-dwim ()
   "Toggle #+(or) comment for the next s-expression using AST parsing.
