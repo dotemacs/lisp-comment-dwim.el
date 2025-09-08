@@ -92,7 +92,7 @@
       "(defun test-function (x)\n  (+ x 1))"
       1  ; cursor on first (
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "#+nil (defun test-function (x) (+ x 1))"))))
+    (should (string= (buffer-string) "#+nil (defun test-function (x)\n  (+ x 1))"))))
 
 (ert-deftest lisp-comment-dwim-test-remove-multiline-sexp ()
   "Test removing #+nil from multiline s-expressions."
@@ -100,7 +100,7 @@
       "#+nil (defun test-function (x)\n        (+ x 1))"
       1  ; cursor on #
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "(defun test-function (x)\n(+ x 1))"))))
+    (should (string= (buffer-string) "(defun test-function (x)\n  (+ x 1))"))))
 
 (ert-deftest lisp-comment-dwim-test-region-remove-nil-comment ()
   "Test removing #+nil when selecting entire commented expression in region."
@@ -143,6 +143,23 @@
     (goto-char (point-max))  ; select entire buffer
     (lisp-comment-dwim-region (region-beginning) (region-end))
     (should (string= (buffer-string) "(defun foo (x) x)\n#+nil (defun bar (y) y)"))))
+
+(ert-deftest lisp-comment-dwim-test-preserves-multiline-formatting ()
+  "Test that multiline formatting is preserved when commenting and uncommenting."
+  (let ((original-multiline "(handler-case
+    (load (merge-pathnames \"quicklisp/setup.lisp\" (user-homedir-pathname)))
+  (error ()
+    (format t \"Warning: Quicklisp not found. Make sure cl-markdown is installed.~%\")))"))
+    (lisp-comment-dwim-test-with-buffer
+        original-multiline
+        1  ; cursor on first (
+      (lisp-comment-dwim)
+      (let ((commented-result (buffer-string)))
+        (should (string-prefix-p "#+nil " commented-result))
+        (should (string-match-p "\n" commented-result))
+        (goto-char 1)
+        (lisp-comment-dwim)
+        (should (string= (buffer-string) original-multiline))))))
 
 (provide 'lisp-comment-dwim-test)
 

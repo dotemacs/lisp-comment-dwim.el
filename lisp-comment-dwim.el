@@ -117,7 +117,13 @@ This version parses the actual Lisp AST for more reliable detection."
                     (form-end (point)))
                 ;; Remove just the first #+nil prefix
                 (delete-region start prefix-end)
-                (lisp-comment-dwim--reindent-at-point original-indent)
+                (let ((sexp-start start))
+                  (goto-char sexp-start)
+                  (condition-case nil
+                      (indent-sexp)
+                    (error nil))
+                  (goto-char sexp-start)
+                  (lisp-comment-dwim--reindent-at-point original-indent))
                 (message "Removed #+nil comment"))
             (error
              ;; If we still can't parse, just remove the first #+nil prefix
@@ -132,11 +138,10 @@ This version parses the actual Lisp AST for more reliable detection."
               (message "No s-expression found after cursor")
             (let* ((start (nth 0 parsed))
                    (end (nth 1 parsed))
-                   (form (nth 2 parsed)))
-              (delete-region start end)
+                   (form (nth 2 parsed))
+                   (original-text (buffer-substring start end)))
               (goto-char start)
               (insert "#+nil ")
-              (prin1 form (current-buffer))
               (lisp-comment-dwim--reindent-at-point original-indent)
               (message "Added #+nil comment")))))))))
 
@@ -162,47 +167,47 @@ This version parses the actual Lisp AST for more reliable detection."
 (defun lisp-comment-dwim-region (start end)
   "Toggle #+nil comment for each s-expression in region using AST parsing."
   (interactive "r")
-  (let ((modified-count 0)
-        (current-pos start))
+  (let ((modified-count 0))
     (save-excursion
-      (while (< current-pos end)
-        (goto-char current-pos)
-        (skip-chars-forward " \t\n\r")
-        (setq current-pos (point))
-        (when (< current-pos end)
-          (let ((original-indent (lisp-comment-dwim--get-indentation current-pos)))
+      (goto-char start)
+      (while (and (< (point) end) (not (eobp)))
+        (skip-chars-forward " \t\n\r" end)
+        (when (< (point) end)
+          (let ((line-start (progn (beginning-of-line) (point)))
+                (original-indent (lisp-comment-dwim--get-indentation (point))))
+            (goto-char line-start)
+            (skip-chars-forward " \t")
             (cond
              ;; Case 1: Looking at #+nil - remove it
              ((looking-at "#\\+nil\\s-+")
-              (let ((prefix-end (match-end 0)))
+              (let ((prefix-start (point))
+                    (prefix-end (match-end 0)))
                 (goto-char prefix-end)
                 (condition-case nil
-                    (let ((inner-form (read (current-buffer)))
+                    (let ((form (read (current-buffer)))
                           (form-end (point)))
-                      (delete-region current-pos prefix-end)
-                      (lisp-comment-dwim--reindent-at-point original-indent)
+                      (delete-region prefix-start prefix-end)
+                      (setq end (- end (- prefix-end prefix-start)))
                       (setq modified-count (1+ modified-count))
-                      (setq current-pos (+ current-pos (- form-end prefix-end))))
+                      (goto-char (- form-end (- prefix-end prefix-start))))
                   (error
-                   (delete-region current-pos prefix-end)
-                   (lisp-comment-dwim--reindent-at-point original-indent)
-                   (setq modified-count (1+ modified-count))
-                   (setq current-pos (point))))))
+                   (delete-region prefix-start prefix-end)
+                   (setq end (- end (- prefix-end prefix-start)))
+                   (setq modified-count (1+ modified-count))))))
              ;; Case 2: Regular s-expression - add #+nil
              (t
               (condition-case nil
-                  (let ((sexp-start current-pos)
+                  (let ((sexp-start (point))
                         (form (read (current-buffer)))
-                        (sexp-end (point)))
-                    (delete-region sexp-start sexp-end)
+                        (sexp-end (point))
+                        (comment-length (length "#+nil ")))
                     (goto-char sexp-start)
                     (insert "#+nil ")
-                    (prin1 form (current-buffer))
-                    (lisp-comment-dwim--reindent-at-point original-indent)
+                    (setq end (+ end comment-length))
                     (setq modified-count (1+ modified-count))
-                    (setq current-pos (point)))
+                    (goto-char (+ sexp-end comment-length)))
                 (error
-                 (setq current-pos end))))))))
+                 (goto-char end))))))))
       (message "Toggled #+nil comment on %d s-expression%s"
                modified-count
                (if (= modified-count 1) "" "s")))))
