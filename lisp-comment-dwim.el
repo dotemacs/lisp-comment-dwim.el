@@ -1,4 +1,4 @@
-;;; lisp-comment-dwim.el --- AST-based #+nil toggle for Common Lisp -*- lexical-binding: t; -*-
+;;; lisp-comment-dwim.el --- AST-based #+(or) toggle for Common Lisp -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025
 
@@ -10,7 +10,7 @@
 
 ;;; Commentary:
 
-;; This package provides `lisp-comment-dwim' which toggles #+nil
+;; This package provides `lisp-comment-dwim' which toggles #+(or)
 ;; reader macro comments for Common Lisp s-expressions.
 
 ;;; Code:
@@ -18,12 +18,12 @@
 (require 'cl-lib)
 
 (defgroup lisp-comment-dwim nil
-  "AST-based #+nil comment toggling for Common Lisp."
+  "AST-based #+(or) comment toggling for Common Lisp."
   :group 'lisp
   :prefix "lisp-comment-dwim-")
 
 (defcustom lisp-comment-dwim-whitespace-after-nil " "
-  "Whitespace to insert after #+nil."
+  "Whitespace to insert after #+(or)."
   :type 'string
   :group 'lisp-comment-dwim)
 
@@ -40,35 +40,21 @@ Returns nil if no valid s-expression found."
               (list start end form))
           (error nil))))))
 
-(defun lisp-comment-dwim--form-has-nil-prefix-p (form)
-  "Check if FORM is a #+nil prefixed expression.
-Returns t if the form represents a #+nil comment."
-  (and (listp form)
-       (>= (length form) 2)
-       (eq (car form) '\#+)
-       (eq (cadr form) 'nil)))
-
-(defun lisp-comment-dwim--extract-form-from-nil (form)
-  "Extract the actual form from a #+nil prefixed form.
-Returns the third element of the list."
-  (when (lisp-comment-dwim--form-has-nil-prefix-p form)
-    (caddr form)))
-
 (defun lisp-comment-dwim--find-nil-prefix-bounds (start)
-  "Find the bounds of #+nil prefix starting at START.
+  "Find the bounds of #+(or) prefix starting at START.
 Returns (PREFIX-START . PREFIX-END) or nil if not found."
   (save-excursion
     (goto-char start)
     (skip-chars-forward " \t\n\r")
     (let ((prefix-start (point)))
-      (when (looking-at "#\\+nil\\b")
+      (when (looking-at "#\\+(or)\\b")
         (goto-char (match-end 0))
         (skip-chars-forward " \t")
         (cons prefix-start (point))))))
 
 (defun lisp-comment-dwim--wrap-with-nil-prefix (form)
-  "Wrap FORM with #+nil prefix."
-  `(\#+ nil ,form))
+  "Wrap FORM with #+(or) prefix."
+  `(\#+ or ,form))
 
 (defun lisp-comment-dwim--replace-sexp-at-bounds (start end new-form)
   "Replace s-expression between START and END with NEW-FORM."
@@ -90,32 +76,32 @@ Returns (PREFIX-START . PREFIX-END) or nil if not found."
 
 ;;;###autoload
 (defun lisp-comment-dwim ()
-  "Toggle #+nil comment for the next s-expression using AST parsing.
-If the s-expression following the cursor starts with #+nil, remove it.
-Otherwise, add #+nil at the beginning of the s-expression.
+  "Toggle #+(or) comment for the next s-expression using AST parsing.
+If the s-expression following the cursor starts with #+(or), remove it.
+Otherwise, add #+(or) at the beginning of the s-expression.
 
 This version parses the actual Lisp AST for more reliable detection."
   (interactive)
   (save-excursion
-    ;; First, check if we're anywhere within a #+nil commented expression
+    ;; First, check if we're anywhere within a #+(or) commented expression
     (let* ((line-start (progn (beginning-of-line) (point)))
            (original-point (progn (end-of-line) (point)))
            (original-indent (lisp-comment-dwim--get-indentation line-start)))
       (goto-char line-start)
       (skip-chars-forward " \t")
       (cond
-       ;; Case 1: Line starts with #+nil - remove one #+nil prefix
-       ((looking-at "#\\+nil\\s-+")
+       ;; Case 1: Line starts with #+(or) - remove one #+(or) prefix
+       ((looking-at "#\\+(or)\\s-+")
         (let ((start (point))
               (prefix-end (match-end 0)))
-          ;; Skip any additional #+nil prefixes to find the actual form
+          ;; Skip any additional #+(or) prefixes to find the actual form
           (goto-char prefix-end)
-          (while (looking-at "#\\+nil\\s-+")
+          (while (looking-at "#\\+(or)\\s-+")
             (goto-char (match-end 0)))
           (condition-case nil
               (let ((inner-form (read (current-buffer)))
                     (form-end (point)))
-                ;; Remove just the first #+nil prefix
+                ;; Remove just the first #+(or) prefix
                 (delete-region start prefix-end)
                 (let ((sexp-start start))
                   (goto-char sexp-start)
@@ -124,13 +110,13 @@ This version parses the actual Lisp AST for more reliable detection."
                     (error nil))
                   (goto-char sexp-start)
                   (lisp-comment-dwim--reindent-at-point original-indent))
-                (message "Removed #+nil comment"))
+                (message "Removed #+(or) comment"))
             (error
-             ;; If we still can't parse, just remove the first #+nil prefix
+             ;; If we still can't parse, just remove the first #+(or) prefix
              (delete-region start prefix-end)
              (lisp-comment-dwim--reindent-at-point original-indent)
-             (message "Removed #+nil comment")))))
-       ;; Case 2: Regular s-expression - add #+nil prefix
+             (message "Removed #+(or) comment")))))
+       ;; Case 2: Regular s-expression - add #+(or) prefix
        (t
         (skip-chars-forward " \t\n\r")
         (let ((parsed (lisp-comment-dwim--parse-sexp-at-point)))
@@ -141,9 +127,9 @@ This version parses the actual Lisp AST for more reliable detection."
                    (form (nth 2 parsed))
                    (original-text (buffer-substring start end)))
               (goto-char start)
-              (insert "#+nil ")
+              (insert "#+(or) ")
               (lisp-comment-dwim--reindent-at-point original-indent)
-              (message "Added #+nil comment")))))))))
+              (message "Added #+(or) comment")))))))))
 
 (defun lisp-comment-dwim--get-indentation (pos)
   "Get the indentation level at position POS."
@@ -165,7 +151,7 @@ This version parses the actual Lisp AST for more reliable detection."
 
 ;;;###autoload
 (defun lisp-comment-dwim-region (start end)
-  "Toggle #+nil comment for each s-expression in region using AST parsing."
+  "Toggle #+(or) comment for each s-expression in region using AST parsing."
   (interactive "r")
   (let ((modified-count 0))
     (save-excursion
@@ -178,8 +164,8 @@ This version parses the actual Lisp AST for more reliable detection."
             (goto-char line-start)
             (skip-chars-forward " \t")
             (cond
-             ;; Case 1: Looking at #+nil - remove it
-             ((looking-at "#\\+nil\\s-+")
+             ;; Case 1: Looking at #+(or) - remove it
+             ((looking-at "#\\+(or)\\s-+")
               (let ((prefix-start (point))
                     (prefix-end (match-end 0)))
                 (goto-char prefix-end)
@@ -194,28 +180,28 @@ This version parses the actual Lisp AST for more reliable detection."
                    (delete-region prefix-start prefix-end)
                    (setq end (- end (- prefix-end prefix-start)))
                    (setq modified-count (1+ modified-count))))))
-             ;; Case 2: Regular s-expression - add #+nil
+             ;; Case 2: Regular s-expression - add #+(or)
              (t
               (condition-case nil
                   (let ((sexp-start (point))
                         (form (read (current-buffer)))
                         (sexp-end (point))
-                        (comment-length (length "#+nil ")))
+                        (comment-length (length "#+(or) ")))
                     (goto-char sexp-start)
-                    (insert "#+nil ")
+                    (insert "#+(or) ")
                     (setq end (+ end comment-length))
                     (setq modified-count (1+ modified-count))
                     (goto-char (+ sexp-end comment-length)))
                 (error
                  (goto-char end))))))))
-      (message "Toggled #+nil comment on %d s-expression%s"
+      (message "Toggled #+(or) comment on %d s-expression%s"
                modified-count
                (if (= modified-count 1) "" "s")))))
 
 
 ;;;###autoload
 (defun lisp-comment-dwim-toggle-dwim ()
-  "Intelligently toggle #+nil comments.
+  "Intelligently toggle #+(or) comments.
 If region is active, operate on region. Otherwise operate on next s-expression."
   (interactive)
   (if (use-region-p)

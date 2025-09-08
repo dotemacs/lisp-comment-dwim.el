@@ -1,11 +1,12 @@
 # `lisp-comment-dwim`
 
-Toggle `#+nil` reader macro comments for Common Lisp s-expressions in Emacs.
+Toggle `#+(or)` reader macro comments for Common Lisp s-expressions in
+Emacs.
 
 ## Overview
 
-This package provides intelligent toggling of `#+nil` comments in
-Common Lisp code. Unlike traditional line-based commenting, `#+nil` is
+This package provides intelligent toggling of `#+(or)` comments in
+Common Lisp code. Unlike traditional line-based commenting, `#+(or)` is
 a reader macro that comments out entire s-expressions, making it ideal
 for temporarily disabling Lisp forms while preserving code structure.
 
@@ -17,13 +18,13 @@ for temporarily disabling Lisp forms while preserving code structure.
 (ql:quickload '(:dexador :jonathan) :quiet t)
 
 ;; After running lisp-comment-dwim
-#+nil (ql:quickload '(:dexador :jonathan) :quiet t)
+#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)
 ```
 
 **Uncommenting code:**
 ```lisp
 ;; Before (cursor anywhere on the line)
-#+nil (defun my-function (x) (+ x 1))
+#+(or) (defun my-function (x) (+ x 1))
 
 ;; After running lisp-comment-dwim
 (defun my-function (x) (+ x 1))
@@ -54,9 +55,9 @@ for temporarily disabling Lisp forms while preserving code structure.
 
 ### Basic Commands
 
-- `M-x lisp-comment-dwim` - Toggle `#+nil` comment for s-expression at
+- `M-x lisp-comment-dwim` - Toggle `#+(or)` comment for s-expression at
   cursor
-- `M-x lisp-comment-dwim-region` - Toggle `#+nil` comments for all
+- `M-x lisp-comment-dwim-region` - Toggle `#+(or)` comments for all
   s-expressions in region
 - `M-x lisp-comment-dwim-toggle-dwim` - Intelligently toggle (region
   if active, otherwise single s-expression), useful if you have this
@@ -84,7 +85,7 @@ This binds `M-;` to `lisp-comment-dwim` in:
 ### Customization
 
 ```elisp
-(setq lisp-comment-dwim-whitespace-after-nil " ") ; Default whitespace after #+nil
+(setq lisp-comment-dwim-whitespace-after-nil " ") ; Default whitespace after #+(or)
 ```
 
 ### Custom Key Binding
@@ -94,13 +95,12 @@ This binds `M-;` to `lisp-comment-dwim` in:
 (define-key lisp-mode-map (kbd "C-c ;") #'lisp-comment-dwim)
 ```
 
-## Why `#+nil`?
+## Why `#+(or)`?
 
-The `#+nil` reader macro is a Common Lisp feature that conditionally
-reads code based on feature expressions. Since `nil` is never in the
-features list, `#+nil` effectively comments out the following
-s-expression at read-time. This is superior to line comments (`;;`)
-because:
+The `#+(or)` reader macro is a Common Lisp feature that conditionally
+reads code based on feature expressions. `#+(or)` effectively comments
+out the following s-expression at read-time. This is superior to line
+comments (`;;`) because:
 
 - Preserves s-expression structure
 - Works with any s-expression regardless of formatting

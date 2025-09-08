@@ -23,65 +23,65 @@
      ,@body))
 
 (ert-deftest lisp-comment-dwim-test-remove-nil-cursor-on-hash ()
-  "Test removing #+nil when cursor is positioned on the # character."
+  "Test removing #+(or) when cursor is positioned on the # character."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (ql:quickload '(:dexador :jonathan) :quiet t)"
+      "#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"
       1  ; cursor on #
     (lisp-comment-dwim)
     (should (string= (buffer-string) "(ql:quickload '(:dexador :jonathan) :quiet t)"))))
 
 (ert-deftest lisp-comment-dwim-test-remove-nil-cursor-on-paren ()
-  "Test removing #+nil when cursor is positioned on the opening parenthesis."
+  "Test removing #+(or) when cursor is positioned on the opening parenthesis."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (ql:quickload '(:dexador :jonathan) :quiet t)"
+      "#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"
       7  ; cursor on (
     (lisp-comment-dwim)
     (should (string= (buffer-string) "(ql:quickload '(:dexador :jonathan) :quiet t)"))))
 
 (ert-deftest lisp-comment-dwim-test-add-nil-to-regular-sexp ()
-  "Test adding #+nil to a regular s-expression."
+  "Test adding #+(or) to a regular s-expression."
   (lisp-comment-dwim-test-with-buffer
       "(ql:quickload '(:dexador :jonathan) :quiet t)"
       1  ; cursor on (
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "#+nil (ql:quickload '(:dexador :jonathan) :quiet t)"))))
+    (should (string= (buffer-string) "#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"))))
 
 (ert-deftest lisp-comment-dwim-test-multiple-nil-prefixes-first-removal ()
-  "Test removing the first #+nil from multiple #+nil prefixes."
+  "Test removing the first #+(or) from multiple #+(or) prefixes."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil #+nil (ql:quickload '(:dexador :jonathan) :quiet t)"
+      "#+(or) #+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"
       1  ; cursor at beginning
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "#+nil (ql:quickload '(:dexador :jonathan) :quiet t)"))))
+    (should (string= (buffer-string) "#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"))))
 
 (ert-deftest lisp-comment-dwim-test-multiple-nil-prefixes-second-removal ()
-  "Test removing the remaining #+nil after first removal."
+  "Test removing the remaining #+(or) after first removal."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (ql:quickload '(:dexador :jonathan) :quiet t)"
+      "#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)"
       1  ; cursor at beginning
     (lisp-comment-dwim)
     (should (string= (buffer-string) "(ql:quickload '(:dexador :jonathan) :quiet t)"))))
 
 (ert-deftest lisp-comment-dwim-test-indented-nil-comment ()
-  "Test handling #+nil with proper indentation."
+  "Test handling #+(or) with proper indentation."
   (lisp-comment-dwim-test-with-buffer
-      "  #+nil (some-function arg1 arg2)"
+      "  #+(or) (some-function arg1 arg2)"
       3  ; cursor on #
     (lisp-comment-dwim)
     (should (string= (buffer-string) "  (some-function arg1 arg2)"))))
 
 (ert-deftest lisp-comment-dwim-test-add-to-indented-sexp ()
-  "Test adding #+nil to an indented s-expression."
+  "Test adding #+(or) to an indented s-expression."
   (lisp-comment-dwim-test-with-buffer
       "  (some-function arg1 arg2)"
       3  ; cursor on (
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "  #+nil (some-function arg1 arg2)"))))
+    (should (string= (buffer-string) "  #+(or) (some-function arg1 arg2)"))))
 
 (ert-deftest lisp-comment-dwim-test-cursor-in-middle-of-nil-line ()
-  "Test that cursor position anywhere on #+nil line removes the prefix."
+  "Test that cursor position anywhere on #+(or) line removes the prefix."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (defun test-func () 'test)"
+      "#+(or) (defun test-func () 'test)"
       10  ; cursor somewhere in the middle
     (lisp-comment-dwim)
     (should (string= (buffer-string) "(defun test-func () 'test)"))))
@@ -92,20 +92,20 @@
       "(defun test-function (x)\n  (+ x 1))"
       1  ; cursor on first (
     (lisp-comment-dwim)
-    (should (string= (buffer-string) "#+nil (defun test-function (x)\n  (+ x 1))"))))
+    (should (string= (buffer-string) "#+(or) (defun test-function (x)\n  (+ x 1))"))))
 
 (ert-deftest lisp-comment-dwim-test-remove-multiline-sexp ()
-  "Test removing #+nil from multiline s-expressions."
+  "Test removing #+(or) from multiline s-expressions."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (defun test-function (x)\n        (+ x 1))"
+      "#+(or) (defun test-function (x)\n        (+ x 1))"
       1  ; cursor on #
     (lisp-comment-dwim)
     (should (string= (buffer-string) "(defun test-function (x)\n  (+ x 1))"))))
 
 (ert-deftest lisp-comment-dwim-test-region-remove-nil-comment ()
-  "Test removing #+nil when selecting entire commented expression in region."
+  "Test removing #+(or) when selecting entire commented expression in region."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (in-package :pantry)"
+      "#+(or) (in-package :pantry)"
       1  ; start of selection
     (set-mark (point))
     (goto-char (point-max))  ; select entire buffer
@@ -113,14 +113,14 @@
     (should (string= (buffer-string) "(in-package :pantry)"))))
 
 (ert-deftest lisp-comment-dwim-test-region-add-nil-comment ()
-  "Test adding #+nil when selecting regular s-expression in region."
+  "Test adding #+(or) when selecting regular s-expression in region."
   (lisp-comment-dwim-test-with-buffer
       "(in-package :foo)"
       1  ; start of selection
     (set-mark (point))
     (goto-char (point-max))  ; select entire buffer
     (lisp-comment-dwim-region (region-beginning) (region-end))
-    (should (string= (buffer-string) "#+nil (in-package :foo)"))))
+    (should (string= (buffer-string) "#+(or) (in-package :foo)"))))
 
 (ert-deftest lisp-comment-dwim-test-region-multiple-sexps ()
   "Test region operation on multiple s-expressions."
@@ -132,17 +132,17 @@
     (let ((start-pos (region-beginning))
           (end-pos (region-end)))
       (lisp-comment-dwim-region start-pos end-pos)
-      (should (string= (buffer-string) "#+nil (defun foo (x) x)\n#+nil (defun bar (y) y)")))))
+      (should (string= (buffer-string) "#+(or) (defun foo (x) x)\n#+(or) (defun bar (y) y)")))))
 
 (ert-deftest lisp-comment-dwim-test-region-mixed-commented-uncommented ()
   "Test region operation on mix of commented and uncommented s-expressions."
   (lisp-comment-dwim-test-with-buffer
-      "#+nil (defun foo (x) x)\n(defun bar (y) y)"
+      "#+(or) (defun foo (x) x)\n(defun bar (y) y)"
       1  ; start of selection
     (set-mark (point))
     (goto-char (point-max))  ; select entire buffer
     (lisp-comment-dwim-region (region-beginning) (region-end))
-    (should (string= (buffer-string) "(defun foo (x) x)\n#+nil (defun bar (y) y)"))))
+    (should (string= (buffer-string) "(defun foo (x) x)\n#+(or) (defun bar (y) y)"))))
 
 (ert-deftest lisp-comment-dwim-test-preserves-multiline-formatting ()
   "Test that multiline formatting is preserved when commenting and uncommenting."
@@ -155,7 +155,7 @@
         1  ; cursor on first (
       (lisp-comment-dwim)
       (let ((commented-result (buffer-string)))
-        (should (string-prefix-p "#+nil " commented-result))
+        (should (string-prefix-p "#+(or) " commented-result))
         (should (string-match-p "\n" commented-result))
         (goto-char 1)
         (lisp-comment-dwim)
