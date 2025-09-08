@@ -1,4 +1,4 @@
-;;; lisp-comment-dwim.el --- AST-based #+(or) toggle for Common Lisp -*- lexical-binding: t; -*-
+;;; lisp-comment-dwim.el --- Comment #+(or) toggle for Common Lisp -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025
 
@@ -18,7 +18,7 @@
 (require 'cl-lib)
 
 (defgroup lisp-comment-dwim nil
-  "AST-based #+(or) comment toggling for Common Lisp."
+  "Comment #+(or) toggling for Common Lisp."
   :group 'lisp
   :prefix "lisp-comment-dwim-")
 
@@ -42,11 +42,9 @@ Returns nil if no valid s-expression found."
 
 ;;;###autoload
 (defun lisp-comment-dwim ()
-  "Toggle #+(or) comment for the next s-expression using AST parsing.
+  "Toggle #+(or) comment for the next s-expression.
 If the s-expression following the cursor starts with #+(or), remove it.
-Otherwise, add #+(or) at the beginning of the s-expression.
-
-This version parses the actual Lisp AST for more reliable detection."
+Otherwise, add #+(or) at the beginning of the s-expression."
   (interactive)
   (save-excursion
     ;; First, check if we're anywhere within a #+(or) commented expression
@@ -117,7 +115,7 @@ This version parses the actual Lisp AST for more reliable detection."
 
 ;;;###autoload
 (defun lisp-comment-dwim-region (start end)
-  "Toggle #+(or) comment for each s-expression in region using AST parsing."
+  "Toggle #+(or) comment for each s-expression in region."
   (interactive "r")
   (let ((modified-count 0))
     (save-excursion
