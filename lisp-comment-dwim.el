@@ -3,7 +3,7 @@
 ;; Copyright (C) 2025
 
 ;; Author: Aleksandar Simic <a@repl.ist>
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; Package-Requires: ((emacs "24.3"))
 ;; Keywords: lisp, common-lisp, comments, tools
 ;; URL: https://github.com/dotemacs/lisp-comment-dwim.el
