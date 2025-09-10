@@ -1,14 +1,13 @@
 # `lisp-comment-dwim`
 
-Toggle `#+(or)` reader macro comments for Common Lisp s-expressions in
-Emacs.
+Toggle `#+nil`, `#+(or)` or `#-(and)` reader macro comments for Common
+Lisp s-expressions in Emacs.
 
-## Overview
+The comment macro option is configurable via:
 
-This package provides intelligent toggling of `#+(or)` comments in
-Common Lisp code. Unlike traditional line-based commenting, `#+(or)` is
-a reader macro that comments out entire s-expressions, making it ideal
-for temporarily disabling Lisp forms while preserving code structure.
+```emacs-lisp
+(setq lisp-comment-dwim-comment-macro "#+nil")
+```
 
 ## Example usage
 
@@ -18,17 +17,49 @@ for temporarily disabling Lisp forms while preserving code structure.
 (ql:quickload '(:dexador :jonathan) :quiet t)
 
 ;; After running lisp-comment-dwim
+#+nil (ql:quickload '(:dexador :jonathan) :quiet t)
+;; or
 #+(or) (ql:quickload '(:dexador :jonathan) :quiet t)
+;; or
+#-(and) (ql:quickload '(:dexador :jonathan) :quiet t)
 ```
-
 **Uncommenting code:**
 ```lisp
 ;; Before (cursor anywhere on the line)
+#+nil (defun my-function (x) (+ x 1))
+;; or
 #+(or) (defun my-function (x) (+ x 1))
+;; or
+#-(and) (defun my-function (x) (+ x 1))
 
 ;; After running lisp-comment-dwim
 (defun my-function (x) (+ x 1))
 ```
+
+## Overview
+
+This package provides intelligent toggling of comments in Common Lisp
+code. Unlike traditional line-based commenting, all of the above
+comments are a reader macro that comment out entire s-expressions,
+making it ideal for temporarily disabling Lisp forms while preserving
+code structure.
+
+By default `#+(or)` is the comment. But if you'd like `#+nil` to be
+used, specify it via:
+
+```lisp
+(setq lisp-comment-dwim-comment-macro "#+nil")
+```
+
+The **caveat** being that if you eval this in Common Lisp:
+
+```lisp
+(push :nil *features*)
+```
+
+the macro `#+nil` will **no longer be treated as a comment
+macro**. That **does not apply** to `#+(or)` & `#-(and)` macros.
+
 
 ## Installation
 
@@ -36,8 +67,9 @@ for temporarily disabling Lisp forms while preserving code structure.
 
 ```elisp
 (use-package lisp-comment-dwim
-  :vc (:fetcher github :repo dotemacs/lisp-comment-dwim.el)
-  :config (lisp-comment-dwim-setup-keybindings))
+    :vc (:fetcher github :repo dotemacs/lisp-comment-dwim.el)
+    :custom (lisp-comment-dwim-comment-macro "#+nil")
+    :config (lisp-comment-dwim-setup-keybindings))
 ```
 
 ### Manual Installation
@@ -95,11 +127,11 @@ This binds `M-;` to `lisp-comment-dwim` in:
 (define-key lisp-mode-map (kbd "C-c ;") #'lisp-comment-dwim)
 ```
 
-## Why `#+(or)`?
+## Why comment reader macros ?
 
-The `#+(or)` reader macro is a Common Lisp feature that conditionally
-reads code based on feature expressions. `#+(or)` effectively comments
-out the following s-expression at read-time. This is superior to line
+The comment reader macro is a Common Lisp feature that conditionally
+reads code based on feature expressions. It effectively comments out
+the following s-expression at read-time. This is superior to line
 comments (`;;`) because:
 
 - Preserves s-expression structure
