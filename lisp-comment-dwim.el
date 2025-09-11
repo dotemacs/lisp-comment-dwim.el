@@ -3,7 +3,7 @@
 ;; Copyright (C) 2025
 
 ;; Author: Aleksandar Simic <a@repl.ist>
-;; Version: 1.3.0
+;; Version: 1.4.0
 ;; Package-Requires: ((emacs "24.3"))
 ;; Keywords: lisp, common-lisp, comments, tools
 ;; URL: https://github.com/dotemacs/lisp-comment-dwim.el
@@ -46,6 +46,59 @@ Valid options:
   "Get the comment macro string to insert."
   (concat lisp-comment-dwim-comment-macro lisp-comment-dwim-whitespace-after-nil))
 
+(defun lisp-comment-dwim--line-only-whitespace-p ()
+  "Check if current line contains only whitespace."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at "^[[:space:]]*$")))
+
+(defun lisp-comment-dwim--line-starts-with-semicolon-p ()
+  "Check if current line starts with semicolon comment."
+  (save-excursion
+    (beginning-of-line)
+    (skip-chars-forward " \t")
+    (looking-at ";")))
+
+(defun lisp-comment-dwim--line-starts-with-reader-macro-p ()
+  "Check if current line starts with any reader macro comment."
+  (save-excursion
+    (beginning-of-line)
+    (skip-chars-forward " \t")
+    (or (looking-at "#\\+nil\\s-+")
+        (looking-at "#\\+(or)\\s-+")
+        (looking-at "#-(and)\\s-+"))))
+
+(defun lisp-comment-dwim--at-s-expression-p ()
+  "Check if cursor is positioned at or near an s-expression."
+  (and (not (eobp))
+       (looking-at "(")))
+
+(defun lisp-comment-dwim--inside-parentheses-p ()
+  "Check if cursor is inside parentheses (nested within a larger s-expression)."
+  (save-excursion
+    (condition-case nil
+        (let ((start-pos (point)))
+          (up-list -1)  ; Move to opening paren of containing sexp
+          (< (point) start-pos))  ; If we moved backward, we're inside parens
+      (error nil))))
+
+(defun lisp-comment-dwim--comment-line-with-semicolon ()
+  "Comment current line with semicolon."
+  (save-excursion
+    (beginning-of-line)
+    (skip-chars-forward " \t")
+    (insert "; ")
+    (message "Added semicolon comment")))
+
+(defun lisp-comment-dwim--uncomment-line-with-semicolon ()
+  "Remove semicolon comment from current line."
+  (save-excursion
+    (beginning-of-line)
+    (skip-chars-forward " \t")
+    (when (looking-at ";+ *")
+      (delete-region (match-beginning 0) (match-end 0))
+      (message "Removed semicolon comment"))))
+
 (defun lisp-comment-dwim--parse-sexp-at-point ()
   "Parse s-expression at point and return (START END FORM).
 Returns nil if no valid s-expression found."
@@ -54,39 +107,81 @@ Returns nil if no valid s-expression found."
     (when (not (eobp))
       (let ((start (point)))
         (condition-case nil
-            (let ((form (read (current-buffer)))
-                  (end (point)))
-              (list start end form))
+            (progn
+              (forward-sexp 1)
+              (let ((end (point)))
+                (let ((form (condition-case nil
+                                (progn
+                                  (goto-char start)
+                                  (read (current-buffer)))
+                              (error 'unparseable-form))))
+                  (list start end form))))
           (error nil))))))
 
 ;;;###autoload
 (defun lisp-comment-dwim ()
-  "Toggle comment reader macro for the next s-expression.
-If the s-expression following the cursor starts with the configured comment macro, remove it.
-Otherwise, add the comment macro at the beginning of the s-expression."
+  "Toggle comments intelligently.
+For s-expressions: use reader macro comments (#+nil, #+(or), etc.).
+For regular text: use semicolon comments.
+If line starts with semicolon comment, remove it.
+Otherwise, add appropriate comment type based on content."
   (interactive)
+  (let ((original-point (point)))
+    (save-excursion
+      (goto-char original-point)
+
+      (when (and (looking-at "\n")
+                 (not (bolp)))
+        (forward-line 1))
+
+      (cond
+       ((lisp-comment-dwim--line-starts-with-semicolon-p)
+        (lisp-comment-dwim--uncomment-line-with-semicolon))
+
+       ((lisp-comment-dwim--line-starts-with-reader-macro-p)
+        (lisp-comment-dwim--handle-reader-macro-comments))
+
+       ((lisp-comment-dwim--line-only-whitespace-p)
+        (lisp-comment-dwim--comment-line-with-semicolon))
+
+       ((save-excursion
+          (goto-char original-point)
+          (lisp-comment-dwim--inside-parentheses-p))
+        (lisp-comment-dwim--handle-nested-commenting))
+
+       (t
+        (skip-chars-forward " \t\n\r")
+        (cond
+         ((lisp-comment-dwim--line-starts-with-semicolon-p)
+          (lisp-comment-dwim--uncomment-line-with-semicolon))
+
+         ((lisp-comment-dwim--at-s-expression-p)
+          (lisp-comment-dwim--handle-reader-macro-comments))
+
+         (t
+          (goto-char original-point)
+          (lisp-comment-dwim--comment-line-with-semicolon))))))))
+
+(defun lisp-comment-dwim--handle-reader-macro-comments ()
+  "Handle reader macro commenting for s-expressions."
   (save-excursion
-    ;; First, check if we're anywhere within a commented expression
-    (let* ((line-start (progn (beginning-of-line) (point)))
-           (original-point (progn (end-of-line) (point)))
+    (let* ((original-point (point))
+           (line-start (line-beginning-position))
            (original-indent (lisp-comment-dwim--get-indentation line-start))
            (comment-regex (lisp-comment-dwim--get-comment-macro-regex))
            (comment-string (lisp-comment-dwim--get-comment-macro-string)))
       (goto-char line-start)
       (skip-chars-forward " \t")
       (cond
-       ;; Case 1: Line starts with comment macro - remove one prefix
        ((looking-at comment-regex)
         (let ((start (point))
               (prefix-end (match-end 0)))
-          ;; Skip any additional comment macro prefixes to find the actual form
           (goto-char prefix-end)
           (while (looking-at comment-regex)
             (goto-char (match-end 0)))
           (condition-case nil
               (let ((inner-form (read (current-buffer)))
                     (form-end (point)))
-                ;; Remove just the first comment prefix
                 (delete-region start prefix-end)
                 (let ((sexp-start start))
                   (goto-char sexp-start)
@@ -97,13 +192,13 @@ Otherwise, add the comment macro at the beginning of the s-expression."
                   (lisp-comment-dwim--reindent-at-point original-indent))
                 (message "Removed %s comment" lisp-comment-dwim-comment-macro))
             (error
-             ;; If we still can't parse, just remove the first comment prefix
              (delete-region start prefix-end)
              (lisp-comment-dwim--reindent-at-point original-indent)
              (message "Removed %s comment" lisp-comment-dwim-comment-macro)))))
-       ;; Case 2: Regular s-expression - add comment prefix
        (t
-        (skip-chars-forward " \t\n\r")
+        (if (lisp-comment-dwim--inside-parentheses-p)
+            (goto-char original-point)
+          (skip-chars-forward " \t\n\r"))
         (let ((parsed (lisp-comment-dwim--parse-sexp-at-point)))
           (if (not parsed)
               (message "No s-expression found after cursor")
@@ -114,7 +209,42 @@ Otherwise, add the comment macro at the beginning of the s-expression."
               (goto-char start)
               (insert comment-string)
               (lisp-comment-dwim--reindent-at-point original-indent)
+              (condition-case nil
+                  (indent-sexp)
+                (error nil))
               (message "Added %s comment" lisp-comment-dwim-comment-macro)))))))))
+
+
+(defun lisp-comment-dwim--handle-nested-commenting ()
+  "Simplified nested commenting logic."
+  (let ((comment-regex (lisp-comment-dwim--get-comment-macro-regex))
+        (comment-string (lisp-comment-dwim--get-comment-macro-string)))
+    (cond
+     ((looking-at comment-regex)
+      (delete-region (point) (match-end 0))
+      (message "Removed %s comment" lisp-comment-dwim-comment-macro))
+
+     ((save-excursion
+        (beginning-of-line)
+        (when (re-search-forward (regexp-quote lisp-comment-dwim-comment-macro) (line-end-position) t)
+          (let ((macro-start (match-beginning 0))
+                (macro-end (match-end 0)))
+            (goto-char macro-end)
+            (skip-chars-forward " \t")
+            (let ((whitespace-end (point)))
+              (delete-region macro-start whitespace-end)
+              (message "Removed %s comment" lisp-comment-dwim-comment-macro)
+              t)))))
+
+     (t
+      (let ((parsed (lisp-comment-dwim--parse-sexp-at-point)))
+        (if parsed
+            (progn
+              (goto-char (nth 0 parsed))
+              (insert comment-string)
+              (message "Added %s comment" lisp-comment-dwim-comment-macro))
+          (insert comment-string)
+          (message "Added %s comment" lisp-comment-dwim-comment-macro)))))))
 
 (defun lisp-comment-dwim--get-indentation (pos)
   "Get the indentation level at position POS."
@@ -151,7 +281,6 @@ Otherwise, add the comment macro at the beginning of the s-expression."
             (goto-char line-start)
             (skip-chars-forward " \t")
             (cond
-             ;; Case 1: Looking at comment macro - remove it
              ((looking-at comment-regex)
               (let ((prefix-start (point))
                     (prefix-end (match-end 0)))
@@ -167,7 +296,7 @@ Otherwise, add the comment macro at the beginning of the s-expression."
                    (delete-region prefix-start prefix-end)
                    (setq end (- end (- prefix-end prefix-start)))
                    (setq modified-count (1+ modified-count))))))
-             ;; Case 2: Regular s-expression - add comment macro
+
              (t
               (condition-case nil
                   (let ((sexp-start (point))

@@ -13,7 +13,7 @@ The comment macro option is configurable via:
 
 **Commenting out code:**
 ```lisp
-;; Before (cursor anywhere on the line)
+;; Before (cursor at the opening paren)
 (ql:quickload '(:dexador :jonathan) :quiet t)
 
 ;; After running lisp-comment-dwim
@@ -25,7 +25,7 @@ The comment macro option is configurable via:
 ```
 **Uncommenting code:**
 ```lisp
-;; Before (cursor anywhere on the line)
+;; Before (cursor anywhere before the opening paren)
 #+nil (defun my-function (x) (+ x 1))
 ;; or
 #+(or) (defun my-function (x) (+ x 1))
@@ -87,10 +87,10 @@ macro**. That **does not apply** to `#+(or)` & `#-(and)` macros.
 
 ### Basic Commands
 
-- `M-x lisp-comment-dwim` - Toggle `#+(or)` comment for s-expression at
-  cursor
-- `M-x lisp-comment-dwim-region` - Toggle `#+(or)` comments for all
-  s-expressions in region
+- `M-x lisp-comment-dwim` - Toggle reader macro comment for
+  s-expression at cursor
+- `M-x lisp-comment-dwim-region` - Toggle reader macro comments for
+  all s-expressions in region
 - `M-x lisp-comment-dwim-toggle-dwim` - Intelligently toggle (region
   if active, otherwise single s-expression), useful if you have this
   function bound to a binding, so that it can operate on s-expressions

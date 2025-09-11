@@ -18,6 +18,7 @@
   (declare (indent 2))
   `(with-temp-buffer
      (lisp-mode)
+     (setq-local indent-tabs-mode nil)
      (insert ,content)
      (goto-char ,cursor-pos)
      ,@body))
@@ -208,21 +209,21 @@
   (lisp-comment-dwim-test-with-macro "#+nil"
       "(defun test-function (x)\n  (+ x 1))"
       1  ; cursor on first (
-      "#+nil (defun test-function (x)\n  (+ x 1))"))
+      "#+nil (defun test-function (x)\n        (+ x 1))"))
 
 (ert-deftest lisp-comment-dwim-test-multiline-sexp-or ()
   "Test handling multiline s-expressions with #+(or)."
   (lisp-comment-dwim-test-with-macro "#+(or)"
       "(defun test-function (x)\n  (+ x 1))"
       1  ; cursor on first (
-      "#+(or) (defun test-function (x)\n  (+ x 1))"))
+      "#+(or) (defun test-function (x)\n         (+ x 1))"))
 
 (ert-deftest lisp-comment-dwim-test-multiline-sexp-and ()
   "Test handling multiline s-expressions with #-(and)."
   (lisp-comment-dwim-test-with-macro "#-(and)"
       "(defun test-function (x)\n  (+ x 1))"
       1  ; cursor on first (
-      "#-(and) (defun test-function (x)\n  (+ x 1))"))
+      "#-(and) (defun test-function (x)\n          (+ x 1))"))
 
 (ert-deftest lisp-comment-dwim-test-remove-multiline-sexp-nil ()
   "Test removing #+nil from multiline s-expressions."
@@ -250,9 +251,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+nil"))
     (lisp-comment-dwim-test-with-buffer
         "#+nil (in-package :pantry)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "(in-package :pantry)")))))
 
@@ -261,9 +262,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+(or)"))
     (lisp-comment-dwim-test-with-buffer
         "#+(or) (in-package :pantry)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "(in-package :pantry)")))))
 
@@ -272,9 +273,9 @@
   (let ((lisp-comment-dwim-comment-macro "#-(and)"))
     (lisp-comment-dwim-test-with-buffer
         "#-(and) (in-package :pantry)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "(in-package :pantry)")))))
 
@@ -283,9 +284,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+nil"))
     (lisp-comment-dwim-test-with-buffer
         "(in-package :foo)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "#+nil (in-package :foo)")))))
 
@@ -294,9 +295,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+(or)"))
     (lisp-comment-dwim-test-with-buffer
         "(in-package :foo)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "#+(or) (in-package :foo)")))))
 
@@ -305,9 +306,9 @@
   (let ((lisp-comment-dwim-comment-macro "#-(and)"))
     (lisp-comment-dwim-test-with-buffer
         "(in-package :foo)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "#-(and) (in-package :foo)")))))
 
@@ -316,9 +317,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+nil"))
     (lisp-comment-dwim-test-with-buffer
         "(defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (let ((start-pos (region-beginning))
             (end-pos (region-end)))
         (lisp-comment-dwim-region start-pos end-pos)
@@ -329,9 +330,9 @@
   (let ((lisp-comment-dwim-comment-macro "#+(or)"))
     (lisp-comment-dwim-test-with-buffer
         "(defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (let ((start-pos (region-beginning))
             (end-pos (region-end)))
         (lisp-comment-dwim-region start-pos end-pos)
@@ -342,33 +343,33 @@
   (let ((lisp-comment-dwim-comment-macro "#-(and)"))
     (lisp-comment-dwim-test-with-buffer
         "(defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (let ((start-pos (region-beginning))
             (end-pos (region-end)))
         (lisp-comment-dwim-region start-pos end-pos)
-        (should (string= (buffer-string) "#-(and) (defun foo (x) x)\n#-(and) (defun bar (y) y)")))))
+        (should (string= (buffer-string) "#-(and) (defun foo (x) x)\n#-(and) (defun bar (y) y)"))))))
 
 (ert-deftest lisp-comment-dwim-test-region-mixed-commented-uncommented-nil ()
   "Test region operation on mix of commented and uncommented s-expressions with #+nil."
   (let ((lisp-comment-dwim-comment-macro "#+nil"))
     (lisp-comment-dwim-test-with-buffer
         "#+nil (defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
-      (should (string= (buffer-string) "(defun foo (x) x)\n#+nil (defun bar (y) y)"))))))
+      (should (string= (buffer-string) "(defun foo (x) x)\n#+nil (defun bar (y) y)")))))
 
 (ert-deftest lisp-comment-dwim-test-region-mixed-commented-uncommented-or ()
   "Test region operation on mix of commented and uncommented s-expressions with #+(or)."
   (let ((lisp-comment-dwim-comment-macro "#+(or)"))
     (lisp-comment-dwim-test-with-buffer
         "#+(or) (defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "(defun foo (x) x)\n#+(or) (defun bar (y) y)")))))
 
@@ -377,11 +378,188 @@
   (let ((lisp-comment-dwim-comment-macro "#-(and)"))
     (lisp-comment-dwim-test-with-buffer
         "#-(and) (defun foo (x) x)\n(defun bar (y) y)"
-        1  ; start of selection
+        1
       (set-mark (point))
-      (goto-char (point-max))  ; select entire buffer
+      (goto-char (point-max))
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "(defun foo (x) x)\n#-(and) (defun bar (y) y)")))))
+
+(ert-deftest lisp-comment-dwim-test-cursor-on-nested-sexp-nil ()
+  "Test commenting only nested s-expression when cursor is on its opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo (bar))"
+      6  ; cursor on ( before bar
+      "(foo #+nil (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-on-nested-sexp-or ()
+  "Test commenting only nested s-expression when cursor is on its opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo (bar))"
+      6  ; cursor on ( before bar
+      "(foo #+(or) (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-on-nested-sexp-and ()
+  "Test commenting only nested s-expression when cursor is on its opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo (bar))"
+      6  ; cursor on ( before bar
+      "(foo #-(and) (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-atom-in-nested-sexp-nil ()
+  "Test commenting atom when cursor is positioned before it inside nested s-expression."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo bar baz)"
+      6  ; cursor before 'bar'
+      "(foo #+nil bar baz)"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-atom-in-nested-sexp-or ()
+  "Test commenting atom when cursor is positioned before it inside nested s-expression."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo bar baz)"
+      6  ; cursor before 'bar'
+      "(foo #+(or) bar baz)"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-atom-in-nested-sexp-and ()
+  "Test commenting atom when cursor is positioned before it inside nested s-expression."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo bar baz)"
+      6  ; cursor before 'bar'
+      "(foo #-(and) bar baz)"))
+
+(ert-deftest lisp-comment-dwim-test-remove-comment-from-nested-sexp-nil ()
+  "Test removing comment from nested s-expression when cursor is on comment macro."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo #+nil (bar))"
+      6  ; cursor on # of #+nil
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-remove-comment-from-nested-sexp-or ()
+  "Test removing comment from nested s-expression when cursor is on comment macro."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo #+(or) (bar))"
+      6  ; cursor on # of #+(or)
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-remove-comment-from-nested-sexp-and ()
+  "Test removing comment from nested s-expression when cursor is on comment macro."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo #-(and) (bar))"
+      6  ; cursor on # of #-(and)
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-commented-sexp-nil ()
+  "Test removing comment when cursor is positioned before the commented s-expression."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo #+nil (bar))"
+      11  ; cursor right before (bar)
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-commented-sexp-or ()
+  "Test removing comment when cursor is positioned before the commented s-expression."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo #+(or) (bar))"
+      12  ; cursor right before (bar)
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-cursor-before-commented-sexp-and ()
+  "Test removing comment when cursor is positioned before the commented s-expression."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo #-(and) (bar))"
+      13  ; cursor right before (bar)
+      "(foo (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-semicolon-comment-text ()
+  "Test adding semicolon comment to regular text."
+  (with-temp-buffer
+    (insert "This is nice")
+    (goto-char 1)  ; cursor on "T"
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "; This is nice"))))
+
+(ert-deftest lisp-comment-dwim-test-semicolon-uncomment-text ()
+  "Test removing semicolon comment from text."
+  (with-temp-buffer
+    (insert "; This is nice")
+    (goto-char 1)  ; cursor on semicolon
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "This is nice"))))
+
+(ert-deftest lisp-comment-dwim-test-semicolon-comment-indented-text ()
+  "Test adding semicolon comment to indented text."
+  (with-temp-buffer
+    (insert "  Some text")
+    (goto-char 3)  ; cursor on "S"
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "  ; Some text"))))
+
+(ert-deftest lisp-comment-dwim-test-semicolon-uncomment-indented-text ()
+  "Test removing semicolon comment from indented text."
+  (with-temp-buffer
+    (insert "  ; Some text")
+    (goto-char 3)  ; cursor on semicolon
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "  Some text"))))
+
+(ert-deftest lisp-comment-dwim-test-mixed-comment-types ()
+  "Test that text gets semicolon comments and s-expressions get reader macros."
+  (with-temp-buffer
+    (insert "Text line\n(foo bar)")
+    (goto-char 1)
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "; Text line\n(foo bar)"))
+    (goto-char 12)  ; cursor on "("
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "; Text line\n#+(or) (foo bar)"))))
+
+(ert-deftest lisp-comment-dwim-test-empty-line-gets-semicolon ()
+  "Test that empty lines get semicolon comments."
+  (with-temp-buffer
+    (insert "\n(foo bar)")
+    (goto-char 1)  ; cursor on empty line
+    (lisp-comment-dwim)
+    (should (string= (buffer-string) "; \n(foo bar)"))))
+
+(ert-deftest lisp-comment-dwim-test-multiline-sexp-cursor-on-opening-paren-nil ()
+  "Test commenting multiline s-expression when cursor is on opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo\n #+nil (bar))"
+      1  ; cursor on opening paren of (foo
+      "#+nil (foo\n       #+nil (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-multiline-sexp-cursor-on-opening-paren-or ()
+  "Test commenting multiline s-expression when cursor is on opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo\n #+(or) (bar))"
+      1  ; cursor on opening paren of (foo
+      "#+(or) (foo\n        #+(or) (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-multiline-sexp-cursor-on-opening-paren-and ()
+  "Test commenting multiline s-expression when cursor is on opening parenthesis."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo\n #-(and) (bar))"
+      1  ; cursor on opening paren of (foo
+      "#-(and) (foo\n         #-(and) (bar))"))
+
+(ert-deftest lisp-comment-dwim-test-simple-multiline-sexp-nil ()
+  "Test commenting simple multiline s-expression."
+  (lisp-comment-dwim-test-with-macro "#+nil"
+      "(foo\n bar)"
+      1  ; cursor on opening paren
+      "#+nil (foo\n       bar)"))
+
+(ert-deftest lisp-comment-dwim-test-simple-multiline-sexp-or ()
+  "Test commenting simple multiline s-expression."
+  (lisp-comment-dwim-test-with-macro "#+(or)"
+      "(foo\n bar)"
+      1  ; cursor on opening paren
+      "#+(or) (foo\n        bar)"))
+
+(ert-deftest lisp-comment-dwim-test-simple-multiline-sexp-and ()
+  "Test commenting simple multiline s-expression."
+  (lisp-comment-dwim-test-with-macro "#-(and)"
+      "(foo\n bar)"
+      1  ; cursor on opening paren
+      "#-(and) (foo\n         bar)"))
 
 (provide 'lisp-comment-dwim-test)
 
