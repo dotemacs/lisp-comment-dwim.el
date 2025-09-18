@@ -312,6 +312,84 @@
       (lisp-comment-dwim-region (region-beginning) (region-end))
       (should (string= (buffer-string) "#-(and) (in-package :foo)")))))
 
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-add ()
+  "Comment plain text with semicolon and wrap following sexp in reader macro."
+  (let ((lisp-comment-dwim-comment-macro "#+nil"))
+    (lisp-comment-dwim-test-with-buffer
+        "this is some text\n(foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "; this is some text\n#+nil (foo :bar)\n"))))))
+
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-add-or ()
+  "Comment plain text with semicolon and wrap following sexp in #+(or)."
+  (let ((lisp-comment-dwim-comment-macro "#+(or)"))
+    (lisp-comment-dwim-test-with-buffer
+        "this is some text\n(foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "; this is some text\n#+(or) (foo :bar)\n"))))))
+
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-add-and ()
+  "Comment plain text with semicolon and wrap following sexp in #-(and)."
+  (let ((lisp-comment-dwim-comment-macro "#-(and)"))
+    (lisp-comment-dwim-test-with-buffer
+        "this is some text\n(foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "; this is some text\n#-(and) (foo :bar)\n"))))))
+
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-remove ()
+  "Remove semicolon and reader macro comments across the region."
+  (let ((lisp-comment-dwim-comment-macro "#+nil"))
+    (lisp-comment-dwim-test-with-buffer
+        "; this is some text\n#+nil (foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "this is some text\n(foo :bar)\n"))))))
+
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-remove-or ()
+  "Remove semicolon and #+(or) reader macro comments across the region."
+  (let ((lisp-comment-dwim-comment-macro "#+(or)"))
+    (lisp-comment-dwim-test-with-buffer
+        "; this is some text\n#+(or) (foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "this is some text\n(foo :bar)\n"))))))
+
+(ert-deftest lisp-comment-dwim-test-region-mixed-lines-remove-and ()
+  "Remove semicolon and #-(and) reader macro comments across the region."
+  (let ((lisp-comment-dwim-comment-macro "#-(and)"))
+    (lisp-comment-dwim-test-with-buffer
+        "; this is some text\n#-(and) (foo :bar)\n"
+        1
+      (let ((start (point-min))
+            (end (point-max)))
+        (lisp-comment-dwim-region start end)
+        (should (string=
+                 (buffer-string)
+                 "this is some text\n(foo :bar)\n"))))))
+
 (ert-deftest lisp-comment-dwim-test-region-multiple-sexps-nil ()
   "Test region operation on multiple s-expressions with #+nil."
   (let ((lisp-comment-dwim-comment-macro "#+nil"))

@@ -13,27 +13,49 @@ The comment macro option is configurable via:
 
 **Commenting out code:**
 ```lisp
-;; Before (cursor at the opening paren)
+;; Before
 (ql:quickload '(:dexador :jonathan) :quiet t)
 
 ;; After running lisp-comment-dwim
 #+nil (ql:quickload '(:dexador :jonathan) :quiet t)
-;; or
-#+(or) (ql:quickload '(:dexador :jonathan) :quiet t)
-;; or
-#-(and) (ql:quickload '(:dexador :jonathan) :quiet t)
 ```
 **Uncommenting code:**
 ```lisp
-;; Before (cursor anywhere before the opening paren)
+;; Before
 #+nil (defun my-function (x) (+ x 1))
-;; or
-#+(or) (defun my-function (x) (+ x 1))
-;; or
-#-(and) (defun my-function (x) (+ x 1))
 
 ;; After running lisp-comment-dwim
 (defun my-function (x) (+ x 1))
+```
+
+If you happened to have a mix, of s-expressions & text:
+```lisp
+some comment
+(foo bar)
+```
+
+`lisp-comment-dwim-region` will turn it into:
+
+```lisp
+; some comment
+#+nil (foo bar)
+```
+
+Run it again, to revert it.
+
+But if you have a mix, of commented & uncommented:
+
+```lisp
+; some comment
+(foo bar)
+```
+
+`lisp-comment-dwim-region` will comment the uncommented and uncomment
+the commented:
+
+```lisp
+some comment
+#+nil (foo bar)
 ```
 
 ## Overview
@@ -90,11 +112,11 @@ macro**. That **does not apply** to `#+(or)` & `#-(and)` macros.
 - `M-x lisp-comment-dwim` - Toggle reader macro comment for
   s-expression at cursor
 - `M-x lisp-comment-dwim-region` - Toggle reader macro comments for
-  all s-expressions in region
+  all s-expressions and text in region
 - `M-x lisp-comment-dwim-toggle-dwim` - Intelligently toggle (region
   if active, otherwise single s-expression), useful if you have this
   function bound to a binding, so that it can operate on s-expressions
-  or regions, with a single function.
+  or text regions, with a single function.
 
 ### Key Bindings
 

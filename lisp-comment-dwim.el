@@ -3,7 +3,7 @@
 ;; Copyright (C) 2025
 
 ;; Author: Aleksandar Simic <a@repl.ist>
-;; Version: 1.4.0
+;; Version: 1.5.0
 ;; Package-Requires: ((emacs "24.3"))
 ;; Keywords: lisp, common-lisp, comments, tools
 ;; URL: https://github.com/dotemacs/lisp-comment-dwim.el
@@ -269,49 +269,38 @@ Otherwise, add appropriate comment type based on content."
   "Toggle comment reader macro for each s-expression in region."
   (interactive "r")
   (let ((modified-count 0)
-        (comment-regex (lisp-comment-dwim--get-comment-macro-regex))
-        (comment-string (lisp-comment-dwim--get-comment-macro-string)))
+        (end-marker (copy-marker end)))
+    (set-marker-insertion-type end-marker t)
     (save-excursion
       (goto-char start)
-      (while (and (< (point) end) (not (eobp)))
-        (skip-chars-forward " \t\n\r" end)
-        (when (< (point) end)
-          (let ((line-start (progn (beginning-of-line) (point)))
-                (original-indent (lisp-comment-dwim--get-indentation (point))))
-            (goto-char line-start)
-            (skip-chars-forward " \t")
-            (cond
-             ((looking-at comment-regex)
-              (let ((prefix-start (point))
-                    (prefix-end (match-end 0)))
-                (goto-char prefix-end)
-                (condition-case nil
-                    (let ((form (read (current-buffer)))
-                          (form-end (point)))
-                      (delete-region prefix-start prefix-end)
-                      (setq end (- end (- prefix-end prefix-start)))
-                      (setq modified-count (1+ modified-count))
-                      (goto-char (- form-end (- prefix-end prefix-start))))
-                  (error
-                   (delete-region prefix-start prefix-end)
-                   (setq end (- end (- prefix-end prefix-start)))
-                   (setq modified-count (1+ modified-count))))))
+      (while (< (point) end-marker)
+        (let* ((line-start (line-beginning-position))
+               (line-has-sexp
+                (save-excursion
+                  (goto-char line-start)
+                  (skip-chars-forward " \t")
+                  (eq (char-after) ?\()))
+               (before-tick (buffer-modified-tick)))
+          (goto-char line-start)
+          (cond
+           ((lisp-comment-dwim--line-only-whitespace-p)
+            nil)
 
-             (t
-              (condition-case nil
-                  (let ((sexp-start (point))
-                        (form (read (current-buffer)))
-                        (sexp-end (point))
-                        (comment-length (length comment-string)))
-                    (goto-char sexp-start)
-                    (insert comment-string)
-                    (setq end (+ end comment-length))
-                    (setq modified-count (1+ modified-count))
-                    (goto-char (+ sexp-end comment-length)))
-                (error
-                 (goto-char end))))))))
-      (message "Toggled %s comment on %d s-expression%s"
-               lisp-comment-dwim-comment-macro
+           ((lisp-comment-dwim--line-starts-with-semicolon-p)
+            (lisp-comment-dwim--uncomment-line-with-semicolon))
+
+           ((lisp-comment-dwim--line-starts-with-reader-macro-p)
+            (lisp-comment-dwim--handle-reader-macro-comments))
+
+           (line-has-sexp
+            (lisp-comment-dwim--handle-reader-macro-comments))
+
+           (t
+            (lisp-comment-dwim--comment-line-with-semicolon)))
+          (when (/= before-tick (buffer-modified-tick))
+            (setq modified-count (1+ modified-count)))
+          (forward-line 1)))
+      (message "Toggled comments on %d line%s"
                modified-count
                (if (= modified-count 1) "" "s")))))
 
